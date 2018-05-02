@@ -238,9 +238,14 @@ class FullyConnectedNet(object):
         ############################################################################
         layer_input = X
         caches = [] #for backprop
+        if (self.use_dropout):
+            dp_caches = []
         for i in range(self.num_layers - 1): #last layer is just affine_forward
             layer_input, cache = affine_relu_forward(layer_input, self.params["W" + str(i+1)], self.params["b" + str(i+1)])
             caches.append(cache)
+            if (self.use_dropout):
+                layer_input, d_cache = dropout_forward(layer_input, self.dropout_param)
+                dp_caches.append(d_cache)
         scores, cache = affine_forward(layer_input, self.params["W" + str(self.num_layers)], self.params["b" + str(self.num_layers)])
         caches.append(cache)
         ############################################################################
@@ -272,6 +277,8 @@ class FullyConnectedNet(object):
         grads["W" + str(self.num_layers)] += self.reg * self.params["W" + str(self.num_layers)]
 
         for i in range(self.num_layers-1, 0, -1): #from backward in the list and with which layer
+            if (self.use_dropout):
+                dloss = dropout_backward(dloss, dp_caches[i-1])
             dloss, grads["W" + str(i)], grads["b" + str(i)] = affine_relu_backward(dloss, caches[i-1])
             loss += 0.5 * self.reg * np.sum(self.params["W" + str(i)] * self.params["W" + str(i)])
             grads["W" + str(i)] += self.reg * self.params["W" + str(i)]
